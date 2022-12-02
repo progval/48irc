@@ -60,6 +60,8 @@ class OutgoingHandler:
         self._state.shut_down = True
 
     def onMsg(self, command: str, args: str) -> None:
+        from .state import BufferMessage
+
         command = command.upper()
         if command == "MSG":
             command = "PRIVMSG"
@@ -68,7 +70,12 @@ class OutgoingHandler:
         except ValueError:
             self._state.display_error(f"Syntax: /{command} <target> <message>")
 
-        self._state.send_message_with_echo(command, [target, content])
+        buf_msg = BufferMessage(
+            author=self._state.current_nick,
+            content=content,
+        )
+        self._state.display(target, buf_msg)
+        self._state.send_message(command, [target, content])
 
     onPrivmsg = onNotice = onMsg
 

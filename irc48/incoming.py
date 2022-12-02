@@ -69,3 +69,20 @@ class IncomingHandler:
             # we just joined a channel, switch to that buffer
             self._state.switch_to_buffer(msg.params[0])
         self._passthrough(msg)
+
+    def onPrivmsg(self, msg: Message) -> None:
+        from .state import BufferMessage
+
+        author = msg.source and msg.source.split("!")[0]
+        buf_msg = BufferMessage(
+            author=author,
+            content=msg.params[1],
+        )
+
+        target = msg.params[0]
+        if target.lower() == self._state.current_nick.lower():
+            # It's a private message
+            assert author
+            target = author
+
+        self._state.display(target, buf_msg)
