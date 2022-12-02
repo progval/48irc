@@ -40,14 +40,16 @@ class BufferMessage:
 
 class State:
     _connection: Connection
-    _messages: collections.deque[BufferMessage]
+    _messages: dict[str | None, collections.deque[BufferMessage]]
     _ui: UI
 
     def __init__(self, default_nick: str):
         self.shut_down = False
         self.default_nick = default_nick
         self.nick_attempt_count = 0
-        self._messages = collections.deque(maxlen=BUFFER_SIZE)
+        self._messages = collections.defaultdict(
+            lambda: collections.deque(maxlen=BUFFER_SIZE)
+        )
         self._incoming_handler = IncomingHandler(self)
         self._outgoing_handler = OutgoingHandler(self)
 
@@ -61,32 +63,37 @@ class State:
     def attach_ui(self, ui: UI) -> None:
         self._ui = ui
 
+    def is_channel(self, s: str) -> bool:
+        # TODO: ISUPPORT CHANTYPE
+        return s.startswith("#!$&")
+
     def on_incoming_message(self, msg: Message) -> None:
         if msg.command.isnumeric():
-            buf_msg = BufferMessage(
-                author=None,
-                content=f"{msg.command} {' '.join(msg.params[1:])}",
-                prefix="-->",
-            )
+            author = None
         else:
-            buf_msg = BufferMessage(
-                author=msg.source,
-                content=f"{msg.command} {' '.join(msg.params)}",
-                prefix="-->",
-            )
-        self.display(buf_msg)
+            author = msg.source
+        (buf_name, params) = msg.pop_channel(self)
+
+        buf_msg = BufferMessage(
+            author=None,
+            content=f"{msg.command} {' '.join(params)}",
+            prefix="-->",
+        )
+        self.display(buf_name, buf_msg)
         self._incoming_handler(msg)
 
-    def display(self, buf_msg: BufferMessage) -> None:
+    def display(self, buf_name: str | None, buf_msg: BufferMessage) -> None:
         self._ui.display_message(buf_msg)
-        self._messages.append(buf_msg)
+        self._messages[buf_name].append(buf_msg)
 
-    def send_message_with_echo(self, command: str, params: list[str]):
+    def send_message_with_echo(
+        self, command: str, params: list[str], buf_name: str = None
+    ):
         buf_msg = BufferMessage(
             author=None, content=f"{command} {' '.join(params)}", prefix="<--"
         )
         self._ui.display_message(buf_msg)
-        self._messages.append(buf_msg)
+        self._messages[buf_name].append(buf_msg)
         self.send_message(command, params)
 
     def send_message(self, command: str, params: list[str]):

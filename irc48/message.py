@@ -24,6 +24,20 @@ import dataclasses
 MAX_LINE_LENGTH = 512
 
 
+COMMANDS_WITH_NO_CHANNEL = """
+AUTHENTICATE PASS NICK PING PONG OPER QUIT ERROR
+LIST
+MOTD VERSION ADMIN CONNECT LUSERS TIME STATS HELP INFO
+WHOIS WHOWAS
+KILL REHASH RESTART SQUIT
+AWAY LINKS USERHOST WALLOPS
+""".split()
+
+COMMANDS_WITH_CHANNEL = "JOIN PART TOPIC NAMES KICK".split()
+
+COMMANDS_WITH_NICK_OR_CHANNEL = "MODE PRIVMSG NOTICE".split()
+
+
 @dataclasses.dataclass
 class Message:
     command: str
@@ -69,3 +83,33 @@ class Message:
             b = b[0:510]
 
         return b + b"\r\n"
+
+    def pop_channel(self, state) -> tuple[str | None, list[str]]:
+        if len(self.params) == 0:
+            return (None, [])
+        command = self.command.upper()
+        if command.isnumeric():
+            if len(self.params) >= 2 and state.is_channel(self.params[1]):
+                return (self.params[1], self.params[2:])
+            else:
+                return (None, self.params)
+        elif command in COMMANDS_WITH_NICK_OR_CHANNEL:
+            if len(self.params) >= 1 and state.is_channel(self.params[0]):
+                return (self.params[0], self.params[1:])
+            else:
+                return (None, self.params)
+        elif command in COMMANDS_WITH_NO_CHANNEL:
+            return (None, self.params)
+        elif command == "WHO":
+            # debatable
+            return (None, self.params)
+        elif command in COMMANDS_WITH_CHANNEL:
+            return (self.params[0], self.params[1:])
+        elif command == "INVITE":
+            if len(self.params) >= 2:
+                return (self.params[1], [self.params[0], *self.params[2:]])
+            else:
+                return (None, self.params)
+        else:
+            # Unknown command.
+            return (None, self.params)
