@@ -75,4 +75,5 @@ class Connection:
                 continue
             state.on_incoming_message(msg)
 
+        self._socket.shutdown(socket.SHUT_RDWR)
         self._socket.close()
