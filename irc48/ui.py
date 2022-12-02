@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import atexit
+import dataclasses
 import io
 import os
 import queue
@@ -32,10 +33,21 @@ if typing.TYPE_CHECKING:
     from .state import State, BufferMessage
 
 
+class _ControlMessage:
+    pass
+
+
+@dataclasses.dataclass
+class SwitchToBuffer(_ControlMessage):
+    buf_name: str | None
+
+
 class UI:
     def __init__(self, state: State):
         self._state = state
-        self._display_queue: queue.Queue[BufferMessage] = queue.Queue()
+        self._display_queue: queue.Queue[
+            BufferMessage | _ControlMessage
+        ] = queue.Queue()
 
     def start(self) -> None:
         pass
@@ -47,20 +59,21 @@ class UI:
                 self._state.on_user_input(line)
 
     def loop_display(self) -> None:
-        current_buffer = self._state.current_buffer
         while not self._state.shut_down:
-            new_buffer = self._state.current_buffer
-            if current_buffer != new_buffer:
-                current_buffer = new_buffer
-                os.system("clear")
-                for msg in self._state.messages[new_buffer]:
-                    self.print_message(msg)
             try:
-                msg = self._display_queue.get(timeout=0.1)
+                msg = self._display_queue.get(timeout=0.01)
             except queue.Empty:
                 continue
             else:
-                self.print_message(msg)
+                if isinstance(msg, SwitchToBuffer):
+                    os.system("clear")
+                    buf_name = msg.buf_name
+                    for msg in self._state.messages[buf_name]:
+                        self.print_message(msg)
+                    self._state.current_buffer = buf_name
+                else:
+                    assert not isinstance(msg, _ControlMessage)
+                    self.print_message(msg)
 
     def print_message(self, msg):
         if msg.author:
@@ -68,5 +81,8 @@ class UI:
         else:
             print(f"\r{msg.prefix} {msg.content}")
 
-    def display_message(self, msg: BufferMessage):
+    def display_message(self, msg: BufferMessage) -> None:
         self._display_queue.put(msg)
+
+    def switch_to_buffer(self, buf_name: str | None) -> None:
+        self._display_queue.put(SwitchToBuffer(buf_name))

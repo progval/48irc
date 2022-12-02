@@ -48,4 +48,4 @@ class IncomingHandler:
     def onJoin(self, msg: Message) -> None:
         if msg.source and msg.source.split("!")[0] == self._state.current_nick:
             # we just joined a channel, switch to that buffer
-            self._state.current_buffer = msg.params[0]
+            self._state.switch_to_buffer(msg.params[0])

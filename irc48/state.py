@@ -122,3 +122,6 @@ class State:
             self.display_error("This is not a chat buffer")
         else:
             self._outgoing_handler("PRIVMSG", f"{self.current_buffer} {s}")
+
+    def switch_to_buffer(self, buf_name: str | None) -> None:
+        self._ui.switch_to_buffer(buf_name)
