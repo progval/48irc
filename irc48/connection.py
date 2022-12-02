@@ -20,6 +20,7 @@ import io
 import socket
 import ssl
 
+from .state import State
 from . import message
 
 
@@ -27,9 +28,9 @@ class Connection:
     _raw_socket: socket.socket
     _socket: socket.socket | ssl.SSLSocket
 
-    def __init__(self, hostname: str, port: int | str, tls: bool):
+    def __init__(self, hostname: str, port: int, *, tls: bool):
         self._raw_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._raw_socket.connect((hostname, int(port)))
+        self._raw_socket.connect((hostname, port))
 
         if tls:
             context = ssl.create_default_context()
@@ -38,6 +39,8 @@ class Connection:
             )
         else:
             self._socket = self._raw_socket
+
+        self._socket.settimeout(0.1)  # want to exit the thread early when requested
 
         self._buffer = b""
 
@@ -51,15 +54,25 @@ class Connection:
         while True:
             if b"\n" in self._buffer:
                 # \r or \r\n line delimiter
-                (line, self._buffer) = self._buffer.split(b"\n")
+                (line, self._buffer) = self._buffer.split(b"\n", 1)
                 line = line.strip(b"\r\n")
             elif b"\r" in self._buffer:
                 # Server used a \r delimiter only, bad. (or we just happened to recv()
                 # up until the last char; we'll dismiss the \n in the next call)
-                (line, self._buffer) = self._buffer.split(b"\n")
+                (line, self._buffer) = self._buffer.split(b"\n", 1)
                 line = line.strip(b"\r\n")
 
             if line:
                 return message.Message.from_bytes(line)
 
             self._buffer += self._socket.recv(4096)
+
+    def loop(self, state: State) -> None:
+        while not state.shut_down:
+            try:
+                msg = self.get_message()
+            except socket.timeout:
+                continue
+            state.on_incoming_message(msg)
+
+        self._socket.close()

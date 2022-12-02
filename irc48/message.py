@@ -26,9 +26,9 @@ MAX_LINE_LENGTH = 512
 
 @dataclasses.dataclass
 class Message:
-    source: str | None
     command: str
     params: list[str]
+    source: str | None = None
 
     @classmethod
     def from_string(cls, s: str) -> Message:
@@ -52,9 +52,13 @@ class Message:
         else:
             source = ""
 
+        assert " " not in self.command, "Space in {command!r}"
+
+        if not self.params:
+            return f"{source}{self.command}\r\n".encode()
+
         (*params, trailing) = self.params
 
-        assert " " not in self.command, "Space in {command!r}"
         for param in params:
             assert " " not in param, "Space in {param!r}"
 
@@ -64,4 +68,4 @@ class Message:
             logging.warning("Line too long: %r", b)
             b = b[0:510]
 
-        return b
+        return b + b"\r\n"
