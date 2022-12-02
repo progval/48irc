@@ -63,7 +63,21 @@ class OutgoingHandler:
         command = command.upper()
         if command == "MSG":
             command = "PRIVMSG"
-        (target, content) = args.split(maxsplit=1)
+        try:
+            (target, content) = args.split(maxsplit=1)
+        except ValueError:
+            self._state.display_error(f"Syntax: /{command} <target> <message>")
+
         self._state.send_message_with_echo(command, [target, content])
 
     onPrivmsg = onNotice = onMsg
+
+    def _on_prepend_channel(self, command: str, args: str):
+        if not self._state.is_channel(args.split(maxsplit=1)[0]):
+            if self._state.current_buffer is None:
+                self._state.display_error("This is not a chat buffer")
+                return
+            else:
+                args = f"{self._state.current_buffer} {args}"
+
+        self._passthrough(command, args)

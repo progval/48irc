@@ -89,6 +89,12 @@ class State:
             self._ui.display_message(buf_msg)
         self.messages[buf_name].append(buf_msg)
 
+    def display_info(self, error: str) -> None:
+        self._ui.display_message(BufferMessage(author=None, content=error, prefix=""))
+
+    def display_error(self, error: str) -> None:
+        self._ui.display_message(BufferMessage(author=None, content=error, prefix="!"))
+
     def send_message_with_echo(
         self, command: str, params: list[str], buf_name: str = None
     ):
@@ -112,3 +118,7 @@ class State:
                 command = s[1:]
                 args = ""
             self._outgoing_handler(command, args)
+        elif self.current_buffer is None:
+            self.display_error("This is not a chat buffer")
+        else:
+            self._outgoing_handler("PRIVMSG", f"{self.current_buffer} {s}")
