@@ -29,6 +29,8 @@ import time
 import tty
 import typing
 
+from . import formatting
+
 if typing.TYPE_CHECKING:
     from .state import State, BufferMessage
 
@@ -76,10 +78,11 @@ class UI:
                     self.print_message(msg)
 
     def print_message(self, msg):
+        content = formatting.irc_to_ansi(msg.content)
         if msg.author:
-            print(f"\r<{msg.author}> {msg.content}")
+            print(f"\r<{msg.author}> {content}")
         else:
-            print(f"\r{msg.prefix} {msg.content}")
+            print(f"\r{msg.prefix} {content}")
 
     def display_message(self, msg: BufferMessage) -> None:
         self._display_queue.put(msg)
