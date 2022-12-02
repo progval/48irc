@@ -38,7 +38,7 @@ class OutgoingHandler:
         self._state.send_message_with_echo(command.upper(), args.split())
 
     def onBuf(self, command: str, buffer_name: str) -> None:
-        self._state.current_buffer = buffer_name or None
+        self._state.switch_to_buffer(buffer_name or None)
 
     onBuffer = onBuf
 
