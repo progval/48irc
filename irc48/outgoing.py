@@ -79,6 +79,9 @@ class OutgoingHandler:
 
     onPrivmsg = onNotice = onMsg
 
+    def onMe(self, command: str, args: str) -> None:
+        self._state.on_user_input(f"\x01ACTION {args}\x01")
+
     def _on_prepend_channel(self, command: str, args: str):
         if not self._state.is_channel(args.split(maxsplit=1)[0]):
             if self._state.current_buffer is None:

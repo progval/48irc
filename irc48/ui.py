@@ -80,7 +80,10 @@ class UI:
     def print_message(self, msg):
         content = formatting.irc_to_ansi(msg.content)
         if msg.author:
-            print(f"\r<{msg.author}> {content}")
+            if msg.action:
+                print(f"\r* {msg.author} {content}")
+            else:
+                print(f"\r<{msg.author}> {content}")
         else:
             print(f"\r{msg.prefix} {content}")
 

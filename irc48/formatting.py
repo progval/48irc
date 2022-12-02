@@ -63,6 +63,8 @@ _IRC_COLOR_RE = re.compile(
     "\x03(?P<foreground>[0-9]{0,2})(,(?P<background>[0-9]{0,2}))?"
 )
 
+_IRC_256COLOR_RE = re.compile(r"\x04(?P<r>\d\d)(?P<g>\d\d)(?P<b>\d\d)")
+
 
 def _irc_color_replacer(m: re.Match[str]) -> str:
     s = ""

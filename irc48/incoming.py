@@ -74,10 +74,13 @@ class IncomingHandler:
         from .state import BufferMessage
 
         author = msg.source and msg.source.split("!")[0]
-        buf_msg = BufferMessage(
-            author=author,
-            content=msg.params[1],
-        )
+        content = msg.params[1]
+        action = False
+        if content.startswith("\x01ACTION ") and content.endswith("\x01"):
+            action = True
+            content = content[8:-1]
+
+        buf_msg = BufferMessage(author=author, content=content, action=action)
 
         target = msg.params[0]
         if target.lower() == self._state.current_nick.lower():

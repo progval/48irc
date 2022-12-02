@@ -36,6 +36,7 @@ class BufferMessage:
     author: str | None
     content: str
     prefix: str = ""
+    action: bool = False
 
 
 class State:
