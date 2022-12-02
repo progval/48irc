@@ -121,13 +121,22 @@ class OutgoingHandler:
         method_name = "on" + command.capitalize()
         method = getattr(self, method_name, None)
         if method:
-            method(args)
+            method(command, args)
         else:
             self._passthrough(command, args)
 
     def _passthrough(self, command: str, args: str) -> None:
         self._state.send_message_with_echo(command.upper(), args.split())
 
-    def onQuit(self, reason: str) -> None:
-        self._passthrough("QUIT", reason)
+    def onQuit(self, command, reason: str) -> None:
+        self._passthrough(command, reason)
         self._state.shut_down = True
+
+    def onMsg(self, command: str, args: str) -> None:
+        command = command.upper()
+        if command == "MSG":
+            command = "PRIVMSG"
+        (target, content) = args.split(maxsplit=1)
+        self._state.send_message_with_echo(command, [target, content])
+
+    onPrivmsg = onNotice = onMsg
