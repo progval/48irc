@@ -21,6 +21,8 @@ import dataclasses
 import typing
 
 from .message import Message
+from .incoming import IncomingHandler
+from .outgoing import OutgoingHandler
 
 if typing.TYPE_CHECKING:
     from .connection import Connection
@@ -97,46 +99,3 @@ class State:
                 command = s[1:]
                 args = ""
             self._outgoing_handler(command, args)
-
-
-class IncomingHandler:
-    def __init__(self, state: State):
-        self._state = state
-
-    def __call__(self, msg: Message):
-        method_name = "on" + msg.command.capitalize()
-        method = getattr(self, method_name, None)
-        if method:
-            method(msg)
-
-    def onPing(self, msg: Message):
-        self._state.send_message_with_echo("PONG", [msg.params[-1]])
-
-
-class OutgoingHandler:
-    def __init__(self, state: State):
-        self._state = state
-
-    def __call__(self, command: str, args: str):
-        method_name = "on" + command.capitalize()
-        method = getattr(self, method_name, None)
-        if method:
-            method(command, args)
-        else:
-            self._passthrough(command, args)
-
-    def _passthrough(self, command: str, args: str) -> None:
-        self._state.send_message_with_echo(command.upper(), args.split())
-
-    def onQuit(self, command, reason: str) -> None:
-        self._passthrough(command, reason)
-        self._state.shut_down = True
-
-    def onMsg(self, command: str, args: str) -> None:
-        command = command.upper()
-        if command == "MSG":
-            command = "PRIVMSG"
-        (target, content) = args.split(maxsplit=1)
-        self._state.send_message_with_echo(command, [target, content])
-
-    onPrivmsg = onNotice = onMsg
