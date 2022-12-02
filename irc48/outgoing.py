@@ -37,12 +37,17 @@ class OutgoingHandler:
     def _passthrough(self, command: str, args: str) -> None:
         self._state.send_message_with_echo(command.upper(), args.split())
 
-    def onNick(self, command, nick: str) -> None:
+    def onBuf(self, command: str, buffer_name: str) -> None:
+        self._state.current_buffer = buffer_name or None
+
+    onBuffer = onBuf
+
+    def onNick(self, command: str, nick: str) -> None:
         self._state.default_nick = nick
         self._state.nick_attempt_count = 0
         self._passthrough(command, nick)
 
-    def onQuit(self, command, reason: str) -> None:
+    def onQuit(self, command: str, reason: str) -> None:
         self._passthrough(command, reason)
         self._state.shut_down = True
 

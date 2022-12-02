@@ -40,14 +40,15 @@ class BufferMessage:
 
 class State:
     _connection: Connection
-    _messages: dict[str | None, collections.deque[BufferMessage]]
+    messages: dict[str | None, collections.deque[BufferMessage]]
     _ui: UI
 
     def __init__(self, default_nick: str):
         self.shut_down = False
         self.default_nick = default_nick
         self.nick_attempt_count = 0
-        self._messages = collections.defaultdict(
+        self.current_buffer: str | None = None
+        self.messages = collections.defaultdict(
             lambda: collections.deque(maxlen=BUFFER_SIZE)
         )
         self._incoming_handler = IncomingHandler(self)
@@ -65,7 +66,7 @@ class State:
 
     def is_channel(self, s: str) -> bool:
         # TODO: ISUPPORT CHANTYPE
-        return s.startswith("#!$&")
+        return s.startswith(tuple("#!$&"))
 
     def on_incoming_message(self, msg: Message) -> None:
         if msg.command.isnumeric():
@@ -83,8 +84,9 @@ class State:
         self._incoming_handler(msg)
 
     def display(self, buf_name: str | None, buf_msg: BufferMessage) -> None:
-        self._ui.display_message(buf_msg)
-        self._messages[buf_name].append(buf_msg)
+        if buf_name == self.current_buffer:
+            self._ui.display_message(buf_msg)
+        self.messages[buf_name].append(buf_msg)
 
     def send_message_with_echo(
         self, command: str, params: list[str], buf_name: str = None
@@ -93,7 +95,7 @@ class State:
             author=None, content=f"{command} {' '.join(params)}", prefix="<--"
         )
         self._ui.display_message(buf_msg)
-        self._messages[buf_name].append(buf_msg)
+        self.messages[buf_name].append(buf_msg)
         self.send_message(command, params)
 
     def send_message(self, command: str, params: list[str]):

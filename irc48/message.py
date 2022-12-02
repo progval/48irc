@@ -89,10 +89,28 @@ class Message:
             return (None, [])
         command = self.command.upper()
         if command.isnumeric():
-            if len(self.params) >= 2 and state.is_channel(self.params[1]):
+            numeric = int(command)
+            if (
+                numeric <= 323
+                or numeric == 330
+                or 336 <= numeric <= 338
+                or numeric in (351, 364, 365)
+                or 370 <= numeric
+            ):
+                # no channel
+                return (None, self.params)
+            elif numeric == 353:
+                # RPL_NAMREPLY
+                return (self.params[2], self.params[3:])
+            elif 324 <= numeric <= 333 or 342 <= numeric <= 369:
+                # always channel
                 return (self.params[1], self.params[2:])
             else:
-                return (None, self.params)
+                # Unknown numeric, try to guess
+                if len(self.params) >= 2 and state.is_channel(self.params[1]):
+                    return (self.params[1], self.params[2:])
+                else:
+                    return (None, self.params)
         elif command in COMMANDS_WITH_NICK_OR_CHANNEL:
             if len(self.params) >= 1 and state.is_channel(self.params[0]):
                 return (self.params[0], self.params[1:])
