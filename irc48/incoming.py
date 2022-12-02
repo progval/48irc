@@ -33,12 +33,31 @@ class IncomingHandler:
         method = getattr(self, method_name, None)
         if method:
             method(msg)
+        else:
+            self._passthrough(msg)
+
+    def _passthrough(self, msg: Message) -> None:
+        if msg.command.isnumeric():
+            author = None
+        else:
+            author = msg.source
+        (buf_name, params) = msg.pop_channel(self._state)
+
+        from .state import BufferMessage
+
+        buf_msg = BufferMessage(
+            author=None,
+            content=f"{msg.command} {' '.join(params)}",
+            prefix="-->",
+        )
+        self._state.display(buf_name, buf_msg)
 
     def onPing(self, msg: Message) -> None:
-        self._state.send_message_with_echo("PONG", [msg.params[-1]])
+        self._state.send_message("PONG", [msg.params[-1]])
 
     def on433(self, msg: Message) -> None:
         """ERR_NICKNAMEINUSE"""
+        self._passthrough(msg)
         self._state.nick_attempt_count += 1
         self._state.current_nick = (
             f"{self._state.default_nick}{self._state.nick_attempt_count}"
@@ -49,3 +68,4 @@ class IncomingHandler:
         if msg.source and msg.source.split("!")[0] == self._state.current_nick:
             # we just joined a channel, switch to that buffer
             self._state.switch_to_buffer(msg.params[0])
+        self._passthrough(msg)

@@ -70,18 +70,6 @@ class State:
         return s.startswith(tuple("#!$&"))
 
     def on_incoming_message(self, msg: Message) -> None:
-        if msg.command.isnumeric():
-            author = None
-        else:
-            author = msg.source
-        (buf_name, params) = msg.pop_channel(self)
-
-        buf_msg = BufferMessage(
-            author=None,
-            content=f"{msg.command} {' '.join(params)}",
-            prefix="-->",
-        )
-        self.display(buf_name, buf_msg)
         self._incoming_handler(msg)
 
     def display(self, buf_name: str | None, buf_msg: BufferMessage) -> None:
