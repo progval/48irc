@@ -16,7 +16,12 @@
 
 from __future__ import annotations
 
+import logging
+
 import dataclasses
+
+
+MAX_LINE_LENGTH = 512
 
 
 @dataclasses.dataclass
@@ -37,7 +42,11 @@ class Message:
 
         return Message(source=source, command=command, params=params)
 
-    def to_string(self) -> str:
+    @classmethod
+    def from_bytes(cls, b: bytes) -> Message:
+        return cls.from_string(b.decode(errors="ignore"))
+
+    def to_bytes(self) -> bytes:
         if self.source:
             source = f":{self.source} "
         else:
@@ -49,4 +58,10 @@ class Message:
         for param in params:
             assert " " not in param, "Space in {param!r}"
 
-        return f"{source}{self.command.upper()} {' '.join(params)} :{trailing}"
+        b = f"{source}{self.command.upper()} {' '.join(params)} :{trailing}".encode()
+
+        if len(b) > MAX_LINE_LENGTH:
+            logging.warning("Line too long: %r", b)
+            b = b[0:510]
+
+        return b
