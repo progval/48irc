@@ -36,3 +36,10 @@ class IncomingHandler:
 
     def onPing(self, msg: Message):
         self._state.send_message_with_echo("PONG", [msg.params[-1]])
+
+    def on433(self, msg: Message):
+        """ERR_NICKNAMEINUSE"""
+        self._state.nick_attempt_count += 1
+        self._state.send_message_with_echo(
+            "NICK", [f"{self._state.default_nick}{self._state.nick_attempt_count}"]
+        )

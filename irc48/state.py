@@ -46,6 +46,7 @@ class State:
     def __init__(self, default_nick: str):
         self.shut_down = False
         self.default_nick = default_nick
+        self.nick_attempt_count = 0
         self._messages = collections.deque(maxlen=BUFFER_SIZE)
         self._incoming_handler = IncomingHandler(self)
         self._outgoing_handler = OutgoingHandler(self)
@@ -80,13 +81,15 @@ class State:
         self._ui.display_message(buf_msg)
         self._messages.append(buf_msg)
 
-    def send_message_with_echo(self, command, params):
+    def send_message_with_echo(self, command: str, params: list[str]):
         buf_msg = BufferMessage(
             author=None, content=f"{command} {' '.join(params)}", prefix="<--"
         )
         self._ui.display_message(buf_msg)
         self._messages.append(buf_msg)
+        self.send_message(command, params)
 
+    def send_message(self, command: str, params: list[str]):
         self._connection.send_message(Message(command, params))
 
     def on_user_input(self, s: str) -> None:
