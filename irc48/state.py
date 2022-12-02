@@ -46,6 +46,7 @@ class State:
     def __init__(self, default_nick: str):
         self.shut_down = False
         self.default_nick = default_nick
+        self.current_nick = default_nick
         self.nick_attempt_count = 0
         self.current_buffer: str | None = None
         self.messages = collections.defaultdict(
