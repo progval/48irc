@@ -64,7 +64,7 @@ class State:
         if msg.command.isnumeric():
             buf_msg = BufferMessage(
                 author=None,
-                content=" ".join(msg.params[1:]),
+                content=f"{msg.command} {' '.join(msg.params[1:])}",
                 prefix="-->",
             )
         else:
