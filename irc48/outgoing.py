@@ -42,6 +42,14 @@ class OutgoingHandler:
 
     onBuffer = onBuf
 
+    def onBuffers(self, command: str, args: str) -> None:
+        self._state.display_info(
+            "Buffer list: "
+            + " ".join(
+                buf_name for buf_name in self._state.messages if buf_name is not None
+            ),
+        )
+
     def onNick(self, command: str, nick: str) -> None:
         self._state.default_nick = nick
         self._state.nick_attempt_count = 0
